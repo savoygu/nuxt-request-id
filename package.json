@@ -1,6 +1,6 @@
 {
   "name": "nuxt-request-id",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A Nuxt module for generating and managing unique request IDs",
   "repository": {
     "type": "git",
