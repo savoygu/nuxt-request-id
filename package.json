@@ -1,0 +1,53 @@
+{
+  "name": "nuxt-request-id",
+  "version": "0.0.0",
+  "description": "A Nuxt module for generating and managing unique request IDs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/savoygu/nuxt-request-id.git"
+  },
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/types.d.mts",
+      "import": "./dist/module.mjs"
+    }
+  },
+  "main": "./dist/module.mjs",
+  "typesVersions": {
+    "*": {
+      ".": [
+        "./dist/types.d.mts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prepack": "nuxt-module-build build",
+    "dev:prepare": "nuxt-module-build prepare",
+    "release": "npm run lint && npm run typecheck && npm run test && npm run prepack && changelogen --release --push && npm publish",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "dependencies": {
+    "@nuxt/kit": "^4.4.2"
+  },
+  "devDependencies": {
+    "@nuxt/eslint-config": "^1.15.2",
+    "@nuxt/module-builder": "^1.0.2",
+    "@nuxt/test-utils": "^4.0.2",
+    "@types/node": "^25.6.0",
+    "changelogen": "^0.6.2",
+    "eslint": "^10.2.0",
+    "nuxt": "^4.4.2",
+    "typescript": "~6.0.2",
+    "vitest": "^4.1.4",
+    "vue-tsc": "^3.2.6"
+  }
+}
