@@ -7,7 +7,7 @@
 
 [English](./README.md) | 中文
 
-> 一个为每个请求分配唯一 ID，并在服务端、SSR 与 hydration 之间保持一致的 Nuxt 模块。
+> 一个为每次请求生成 UUID，并在服务端、SSR 与客户端 hydration 之间保持一致的 Nuxt 模块。
 
 ## 安装
 
@@ -33,8 +33,14 @@ export default defineNuxtConfig({
 启用模块后，每个请求都会生成一个 UUID，并且：
 
 - 可通过 `event.context.requestId` 在服务端读取
-- 默认会通过 `x-request-id` 响应头返回
-- 可在应用代码中通过 `useRequestId()` 获取
+- 默认会写入响应头（`x-request-id`）
+- 可在应用运行时通过 `useRequestId()` 获取（组件、composable、plugin）
+
+## 工作机制
+
+1. 服务端 middleware 为每个请求生成 `crypto.randomUUID()`。
+2. 该值写入 `event.context.requestId`，同时设置到响应头。
+3. 运行时 plugin 通过 hydration 同步该值，`useRequestId()` 再从 Nuxt state 中读取。
 
 ## 配置
 
@@ -43,7 +49,7 @@ export default defineNuxtConfig({
 | `headerName` | `string` | `'x-request-id'` | 响应头名称 |
 | `stateKey` | `string` | `'requestId'` | `useRequestId()` 使用的 Nuxt state key |
 
-`stateKey` 只会影响 `useRequestId()` 使用的 Nuxt state key，不会改变服务端上下文里的 `event.context.requestId`。
+`stateKey` 只会影响 `useRequestId()` 对应的 Nuxt state key，不会改变 `event.context.requestId`，也不会改变响应头逻辑。
 
 示例：
 
@@ -63,7 +69,7 @@ export default defineNuxtConfig({
 
 ### `useRequestId()`
 
-在应用代码中通过 `useRequestId()` 读取当前请求 ID。
+在应用运行时代码中通过 `useRequestId()` 读取当前请求 ID：
 
 ```vue
 <script setup lang="ts">
@@ -76,6 +82,35 @@ const requestId = useRequestId()
 ```
 
 如果你修改了 `stateKey`，`useRequestId()` 会自动读取对应的自定义 key。
+
+### 在 Nuxt Plugin 中使用
+
+你可以在自定义 Nuxt plugin 中直接使用 `useRequestId()`：
+
+```ts
+// plugins/request-logger.ts
+export default defineNuxtPlugin(() => {
+  const requestId = useRequestId()
+
+  // 示例：把 request id 注入到 API 请求头
+  const api = $fetch.create({
+    onRequest({ options }) {
+      if (!requestId.value) {
+        return
+      }
+
+      options.headers = {
+        ...options.headers,
+        'x-request-id': requestId.value,
+      }
+    },
+  })
+
+  return {
+    provide: { api },
+  }
+})
+```
 
 ### 服务端路由
 
@@ -92,6 +127,12 @@ export default defineEventHandler((event) => {
   }
 })
 ```
+
+## 注意事项
+
+- `useRequestId()` 返回的是 Nuxt state 的 ref。在正常请求生命周期内通常可拿到对应 UUID。
+- 自定义 `headerName` 仅影响响应头名称。
+- 自定义 `stateKey` 仅影响 `useRequestId()` 的 state key。
 
 ## 许可证
 

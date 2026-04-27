@@ -7,7 +7,7 @@
 
 English | [中文](./README.zh-CN.md)
 
-> A Nuxt module that assigns a unique request ID to every request and keeps it available in server handlers, SSR, and hydration.
+> A Nuxt module that generates a per-request UUID and keeps it consistent across server handlers, SSR, and client hydration.
 
 ## Installation
 
@@ -31,8 +31,14 @@ export default defineNuxtConfig({
 After enabling the module, each request gets a UUID that:
 
 - is exposed as `event.context.requestId`
-- is returned in the `x-request-id` response header by default
-- is available in app code through `useRequestId()`
+- is returned in the response header (default: `x-request-id`)
+- is available in app runtime through `useRequestId()` (components, composables, plugins)
+
+## How It Works
+
+1. A server middleware generates `crypto.randomUUID()` for each request.
+2. The value is stored on `event.context.requestId` and added to response headers.
+3. A Nuxt runtime plugin syncs it through hydration, and `useRequestId()` reads it from Nuxt state.
 
 ## Configuration
 
@@ -41,7 +47,7 @@ After enabling the module, each request gets a UUID that:
 | `headerName` | `string` | `'x-request-id'` | Response header name |
 | `stateKey` | `string` | `'requestId'` | Nuxt state key used by `useRequestId()` |
 
-`stateKey` only changes the Nuxt state key used by `useRequestId()`. The server-side context property remains `event.context.requestId`.
+`stateKey` only changes the Nuxt state key used by `useRequestId()`. It does not change `event.context.requestId` or the response header behavior.
 
 Example:
 
@@ -61,7 +67,7 @@ export default defineNuxtConfig({
 
 ### In Components or Composables
 
-Use `useRequestId()` anywhere in app code to read the current request ID.
+Use `useRequestId()` in app runtime to read the current request ID:
 
 ```vue
 <script setup lang="ts">
@@ -71,6 +77,35 @@ const requestId = useRequestId()
 <template>
   <p>Request ID: {{ requestId }}</p>
 </template>
+```
+
+### In Nuxt Plugins
+
+`useRequestId()` also works inside your own Nuxt plugins.
+
+```ts
+// plugins/request-logger.ts
+export default defineNuxtPlugin(() => {
+  const requestId = useRequestId()
+
+  // Example: attach request id to your api client header
+  const api = $fetch.create({
+    onRequest({ options }) {
+      if (!requestId.value) {
+        return
+      }
+
+      options.headers = {
+        ...options.headers,
+        'x-request-id': requestId.value,
+      }
+    },
+  })
+
+  return {
+    provide: { api },
+  }
+})
 ```
 
 ### In Server Routes
@@ -84,6 +119,12 @@ export default defineEventHandler((event) => {
   return { requestId, message: 'Hello World' }
 })
 ```
+
+## Notes
+
+- `useRequestId()` returns a Nuxt state ref. During a normal request lifecycle it should contain the generated UUID.
+- If you customize `headerName`, only the response header name changes.
+- If you customize `stateKey`, only the `useRequestId()` state key changes.
 
 ## License
 
