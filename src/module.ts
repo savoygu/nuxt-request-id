@@ -7,10 +7,16 @@ export interface ModuleOptions {
    */
   headerName: string
   /**
-   * Key used for useState / useHydration
+   * Nuxt state key used by useRequestId()
    * @default 'requestId'
    */
   stateKey: string
+}
+
+declare module 'nuxt/schema' {
+  interface PublicRuntimeConfig {
+    requestId: ModuleOptions
+  }
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -33,7 +39,7 @@ export default defineNuxtModule<ModuleOptions>({
       handler: resolver.resolve('./runtime/server/middleware/request-id'),
     })
 
-    // Add client plugin
+    // Add runtime plugin to keep requestId consistent across SSR and hydration.
     addPlugin(resolver.resolve('./runtime/plugin/request-id'))
 
     // Add composables

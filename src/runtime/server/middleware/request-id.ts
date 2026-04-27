@@ -7,9 +7,9 @@ export default defineEventHandler((event) => {
 
   const requestId = crypto.randomUUID()
 
-  // Store in request context for access in composables
+  // Store on request context so server handlers and app runtime can read it.
   event.context.requestId = requestId
 
-  // Set response header
+  // Expose the same value in response headers for tracing.
   setResponseHeader(event, headerName, requestId)
 })
